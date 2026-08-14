@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.routes import google_crawler as crawler_routes
+from app.core.config import settings
 from app.core.exceptions import AppError
 from app.main import app
 from app.services.google_crawler import browser_raw as browser_raw_module
@@ -115,10 +116,16 @@ def test_combined_demo_endpoint_returns_two_tabs(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(crawler_routes.googlebot_service, "run", fake_googlebot_run)
     monkeypatch.setattr(crawler_routes.google_render_service, "test", fake_render_test)
 
-    response = client.post(
-        "/api/v1/demo/google-crawler/test",
-        json={"url": "https://example.com/"},
-    )
+    original_token = settings.demo_access_token
+    object.__setattr__(settings, "demo_access_token", "crawler-test-token")
+    try:
+        response = client.post(
+            "/api/v1/demo/google-crawler/test",
+            headers={"X-API-Token": "crawler-test-token"},
+            json={"url": "https://example.com/"},
+        )
+    finally:
+        object.__setattr__(settings, "demo_access_token", original_token)
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["status"] == "warning"

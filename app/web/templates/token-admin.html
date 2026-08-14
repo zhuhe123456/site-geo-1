@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Token 管理 · GEO Audit</title>
+  <link rel="stylesheet" href="/static/css/token-admin.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <a class="eyebrow" href="/">GEO AUDIT</a>
+        <h1>访问 Token 管理</h1>
+        <p>创建、暂停和限制 API 访问凭证，并按 Token 查看调用日志。</p>
+      </div>
+      <span id="connection-badge" class="badge neutral">未连接</span>
+    </header>
+
+    <section id="login-panel" class="panel login-panel">
+      <div>
+        <h2>管理员验证</h2>
+        <p>输入环境变量 <code>TOKEN_ADMIN_KEY</code> 的值以解锁管理功能。</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <input id="admin-key" type="password" required autocomplete="current-password" placeholder="管理员密钥" />
+        <button class="button primary" type="submit">验证并进入</button>
+      </form>
+      <p id="login-message" class="message" aria-live="polite"></p>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <div class="summary-grid">
+        <article class="stat-card"><span>Token 总数</span><strong id="total-count">0</strong></article>
+        <article class="stat-card"><span>当前启用</span><strong id="enabled-count">0</strong></article>
+        <article class="stat-card"><span>最近使用</span><strong id="recent-use">—</strong></article>
+      </div>
+
+      <section class="panel create-panel">
+        <div class="section-heading">
+          <div><h2>创建 Token</h2><p>留空 Token 内容时，系统自动生成高强度凭证。</p></div>
+        </div>
+        <form id="create-form" class="create-form">
+          <label>名称<input id="token-name" maxlength="80" required placeholder="例如：客户演示 / 内部测试" /></label>
+          <label>自定义 Token（可选）
+            <span class="token-input-row">
+              <input id="custom-token" type="password" minlength="12" maxlength="256" placeholder="至少 12 位；建议留空自动生成" />
+              <button id="generate-token" class="button generate-button" type="button">随机生成</button>
+            </span>
+          </label>
+          <label>调用次数上限（可选）<input id="max-calls" type="number" min="1" step="1" placeholder="留空表示不限次数" /></label>
+          <button class="button primary" type="submit">创建 Token</button>
+        </form>
+      </section>
+
+      <section id="secret-panel" class="secret-panel" hidden>
+        <div><strong>Token 创建成功</strong><p>可在下方列表随时查看或复制明文。</p></div>
+        <code id="new-token"></code>
+        <button id="copy-token" class="button light" type="button">复制</button>
+        <button id="close-secret" class="icon-button" type="button" aria-label="关闭">×</button>
+      </section>
+
+      <section class="panel list-panel">
+        <div class="section-heading">
+          <div><h2>已创建的 Token</h2><p>暂停和额度调整立即生效，删除操作不可撤销。</p></div>
+          <button id="refresh-button" class="button secondary" type="button">刷新</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>名称</th><th>Token 明文</th><th>状态</th><th>额度</th><th>日志数</th><th>创建时间</th><th>最后使用</th><th class="actions-col">操作</th></tr></thead>
+            <tbody id="token-list"></tbody>
+          </table>
+          <div id="empty-state" class="empty-state" hidden>还没有 Token，先创建一个。</div>
+        </div>
+      </section>
+      <section id="log-panel" class="panel list-panel">
+        <div class="section-heading log-heading">
+          <div><h2>Token 调用日志</h2><p>记录业务 API 的鉴权结果、请求来源、状态码和耗时，不保存 Token 明文或请求正文。</p></div>
+          <div class="log-tools">
+            <select id="log-token-filter" aria-label="按 Token 筛选"><option value="">全部 Token</option></select>
+            <select id="log-outcome-filter" aria-label="按鉴权结果筛选">
+              <option value="">全部结果</option>
+              <option value="valid">验证成功</option>
+              <option value="missing">缺少 Token</option>
+              <option value="invalid">无效 Token</option>
+              <option value="disabled">Token 已暂停</option>
+              <option value="quota-exceeded">次数已用完</option>
+            </select>
+            <button id="refresh-logs" class="button secondary" type="button">刷新日志</button>
+            <button id="clear-logs" class="button danger-button" type="button">清空日志</button>
+          </div>
+        </div>
+        <div class="log-summary"><span>当前：<strong id="log-scope">全部 Token</strong> · 共 <strong id="log-count">0</strong> 条</span><span>默认展示最近 100 条</span></div>
+        <div class="table-wrap">
+          <table class="log-table">
+            <thead><tr><th>时间</th><th>Token</th><th>鉴权</th><th>请求</th><th>状态码</th><th>耗时</th><th>客户端</th><th class="actions-col">详情</th></tr></thead>
+            <tbody id="log-list"></tbody>
+          </table>
+          <div id="log-empty-state" class="empty-state" hidden>暂无调用日志。</div>
+        </div>
+      </section>
+    </section>
+
+    <dialog id="log-dialog" class="log-dialog">
+      <div class="dialog-heading"><div><span class="eyebrow">REQUEST DETAIL</span><h2>调用详情</h2></div><button id="close-log-dialog" class="dialog-close" type="button" aria-label="关闭">×</button></div>
+      <pre id="log-detail"></pre>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+  <script src="/static/js/token-admin.js" defer></script>
+</body>
+</html>

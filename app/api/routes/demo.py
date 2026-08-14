@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
-from app.api.demo_access import DEMO_TOKEN_HEADER, is_demo_token_enabled, require_demo_token
+from app.api.demo_access import API_TOKEN_HEADER, DEMO_TOKEN_HEADER, is_demo_token_enabled, require_demo_token
 from app.api.routes.report import build_task_report_response
 from app.api.routes.tasks import build_pending_graph_payload, task_service
 from app.core.exceptions import AppError
@@ -65,7 +65,8 @@ async def demo_token_status() -> dict:
     return success_response(
         {
             "token_required": is_demo_token_enabled(),
-            "header_name": DEMO_TOKEN_HEADER,
+            "header_name": API_TOKEN_HEADER,
+            "accepted_headers": [API_TOKEN_HEADER, DEMO_TOKEN_HEADER, "Authorization: Bearer"],
         }
     )
 

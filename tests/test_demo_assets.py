@@ -64,7 +64,8 @@ def test_demo_token_status_reports_enabled_flag() -> None:
     payload = response.json()
     assert payload["success"] is True
     assert payload["data"]["token_required"] is True
-    assert payload["data"]["header_name"] == "X-Demo-Token"
+    assert payload["data"]["header_name"] == "X-API-Token"
+    assert "X-Demo-Token" in payload["data"]["accepted_headers"]
 
 
 def test_demo_verify_token_requires_matching_header() -> None:
@@ -108,7 +109,7 @@ def test_demo_task_routes_reject_missing_token_when_enabled() -> None:
         object.__setattr__(settings, "demo_access_token", original)
 
     assert response.status_code == 401
-    assert response.json()["message"] == "demo token required or invalid"
+    assert response.json()["message"] == "API token required or invalid"
 
 
 def test_demo_knowledge_graph_returns_pending_payload_when_snapshot_not_ready(monkeypatch) -> None:
@@ -136,12 +137,15 @@ def test_demo_knowledge_graph_returns_pending_payload_when_snapshot_not_ready(mo
         return None
 
     original = settings.demo_access_token
-    object.__setattr__(settings, "demo_access_token", "")
+    object.__setattr__(settings, "demo_access_token", "graph-test-token")
     monkeypatch.setattr(demo_routes.task_service, "get_task", fake_get_task)
     monkeypatch.setattr(demo_routes.task_service.site_graph_service, "load_task_graph", fake_load_task_graph)
     monkeypatch.setattr(demo_routes.task_service.site_graph_service, "enabled", True)
     try:
-        response = client.get("/api/v1/demo/tasks/task-pending-graph/knowledge-graph")
+        response = client.get(
+            "/api/v1/demo/tasks/task-pending-graph/knowledge-graph",
+            headers={"X-API-Token": "graph-test-token"},
+        )
     finally:
         object.__setattr__(settings, "demo_access_token", original)
 
@@ -179,12 +183,15 @@ def test_demo_entity_graph_returns_pending_payload_when_snapshot_not_ready(monke
         return None
 
     original = settings.demo_access_token
-    object.__setattr__(settings, "demo_access_token", "")
+    object.__setattr__(settings, "demo_access_token", "entity-graph-test-token")
     monkeypatch.setattr(demo_routes.task_service, "get_task", fake_get_task)
     monkeypatch.setattr(demo_routes.task_service.site_entity_graph_service, "load_task_graph", fake_load_task_graph)
     monkeypatch.setattr(demo_routes.task_service.site_entity_graph_service, "enabled", True)
     try:
-        response = client.get("/api/v1/demo/tasks/task-pending-entity-graph/entity-graph")
+        response = client.get(
+            "/api/v1/demo/tasks/task-pending-entity-graph/entity-graph",
+            headers={"X-API-Token": "entity-graph-test-token"},
+        )
     finally:
         object.__setattr__(settings, "demo_access_token", original)
 

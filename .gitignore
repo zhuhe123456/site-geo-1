@@ -84,6 +84,7 @@ workspace.xml
 # Environments
 .env
 .venv
+.data/
 env/
 venv/
 ENV/

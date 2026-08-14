@@ -64,6 +64,10 @@ class Settings:
     cache_ttl_days: int = _get_int("CACHE_TTL_DAYS", 7)
     cache_dir: str = os.getenv("CACHE_DIR", ".cache/audits")
     demo_access_token: str = os.getenv("DEMO_ACCESS_TOKEN", "").strip()
+    demo_token_db_path: str = os.getenv("DEMO_TOKEN_DB_PATH", ".data/demo_tokens.sqlite3")
+    token_admin_key: str = os.getenv("TOKEN_ADMIN_KEY", "").strip()
+    api_token_required: bool = _get_bool("API_TOKEN_REQUIRED", True)
+    token_log_retention_days: int = _get_int("TOKEN_LOG_RETENTION_DAYS", 90)
 
     # 站点资产库（MySQL）配置
     mysql_enabled: bool = _get_bool("MYSQL_ENABLED", False)

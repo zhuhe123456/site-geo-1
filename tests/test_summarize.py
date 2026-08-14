@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
 
 
@@ -167,7 +168,16 @@ def test_summarize_endpoint_returns_composite_score() -> None:
         },
     }
 
-    response = client.post("/api/v1/audit/summarize", json=payload)
+    original_token = settings.demo_access_token
+    object.__setattr__(settings, "demo_access_token", "summarize-test-token")
+    try:
+        response = client.post(
+            "/api/v1/audit/summarize",
+            headers={"X-API-Token": "summarize-test-token"},
+            json=payload,
+        )
+    finally:
+        object.__setattr__(settings, "demo_access_token", original_token)
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True

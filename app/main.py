@@ -13,6 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.openapi.utils import get_openapi
 
 from app.api.routes.audit import router as audit_router
 from app.api.routes.demo import router as demo_router
@@ -21,6 +22,8 @@ from app.api.routes.health import router as health_router
 from app.api.routes.google_crawler import router as google_crawler_router
 from app.api.routes.report import router as report_router
 from app.api.routes.tasks import router as task_router
+from app.api.routes.token_admin import router as token_admin_router
+from app.api.token_audit import ApiTokenAuditMiddleware
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
@@ -37,6 +40,31 @@ app = FastAPI(
     debug=settings.debug,
     default_response_class=ORJSONResponse,
 )
+app.add_middleware(ApiTokenAuditMiddleware)
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
+    components = schema.setdefault("components", {})
+    components.setdefault("securitySchemes", {})["ApiToken"] = {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Token",
+        "description": "API access token managed at /token-admin. Legacy X-Demo-Token and Bearer tokens are also accepted.",
+    }
+    for path, operations in schema.get("paths", {}).items():
+        if not path.startswith("/api/v1/"):
+            continue
+        for operation in operations.values():
+            if isinstance(operation, dict):
+                operation["security"] = [{"ApiToken": []}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi
 
 WEB_STATIC_DIR = Path(__file__).resolve().parent / "web" / "static"
 app.mount("/static", StaticFiles(directory=str(WEB_STATIC_DIR)), name="static")
@@ -69,6 +97,8 @@ app.include_router(discovery_router)   # 站点快照
 app.include_router(audit_router)       # 各审计模块
 app.include_router(task_router)        # 异步任务管理
 app.include_router(report_router)      # 报告导出
+app.include_router(token_admin_router)
+
 if __name__ == "__main__":
     import uvicorn
     # 注意这里要写 "app.main:app" 而不是 "main:app"

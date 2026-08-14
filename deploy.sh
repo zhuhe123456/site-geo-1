@@ -12,10 +12,11 @@ if ! command -v docker >/dev/null 2>&1; then
     exit 1
 fi
 
-if docker compose version >/dev/null 2>&1; then
+COMPOSE_V2_VERSION="$(docker compose version --short 2>/dev/null || true)"
+if [[ "${COMPOSE_V2_VERSION}" =~ ^v?2\. ]]; then
     COMPOSE=(docker compose -f compose.yaml)
     DEPLOY_MODE="compose"
-    echo ">>> 使用 Docker Compose v2"
+    echo ">>> 使用 Docker Compose v2（${COMPOSE_V2_VERSION}）"
 elif command -v docker-compose >/dev/null 2>&1; then
     # Compose v1 (1.29.x) cannot reliably recreate images produced by newer
     # Docker versions and may fail with KeyError: 'ContainerConfig'.
@@ -31,6 +32,9 @@ if [ ! -f ".env" ]; then
     echo "请先执行：cp .env.example .env，并填写数据库及 API 密钥。"
     exit 1
 fi
+
+# Token、调用额度和调用日志使用 SQLite 保存；确保容器重建后数据仍在宿主机。
+mkdir -p "${SCRIPT_DIR}/.data"
 
 echo ">>> 1/5 拉取最新代码"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -82,6 +86,7 @@ else
         --env-file .env \
         --env ALLOW_PLAYWRIGHT=true \
         --volume "${SCRIPT_DIR}/app:/app/app" \
+        --volume "${SCRIPT_DIR}/.data:/app/.data" \
         --restart unless-stopped \
         --health-cmd "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8023/health', timeout=5)\"" \
         --health-interval 15s \

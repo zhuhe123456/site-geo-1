@@ -18,6 +18,8 @@ services:
       # 保留原容器的挂载方式，服务器目录为 /home/html/site-geo 时，
       # 等价于 /home/html/site-geo/app:/app/app。
       - ./app:/app/app
+      # Persist SQLite-managed demo tokens across container recreation.
+      - ./.data:/app/.data
     command:
       - uvicorn
       - app.main:app
