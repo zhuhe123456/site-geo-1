@@ -17,9 +17,10 @@ if docker compose version >/dev/null 2>&1; then
     DEPLOY_MODE="compose"
     echo ">>> 使用 Docker Compose v2"
 elif command -v docker-compose >/dev/null 2>&1; then
-    COMPOSE=(docker-compose -f compose.yaml)
-    DEPLOY_MODE="compose"
-    echo ">>> 使用 Docker Compose v1"
+    # Compose v1 (1.29.x) cannot reliably recreate images produced by newer
+    # Docker versions and may fail with KeyError: 'ContainerConfig'.
+    DEPLOY_MODE="docker"
+    echo ">>> 检测到旧版 Docker Compose v1，使用纯 Docker 兼容模式"
 else
     DEPLOY_MODE="docker"
     echo ">>> 未安装 Docker Compose，使用纯 Docker 兼容模式"

@@ -82,6 +82,23 @@ def test_demo_verify_token_requires_matching_header() -> None:
     assert allowed.json()["data"]["verified"] is True
 
 
+def test_demo_verify_token_accepts_any_token_from_comma_separated_whitelist() -> None:
+    original = settings.demo_access_token
+    object.__setattr__(settings, "demo_access_token", "first-secret, second-secret, ,third-secret")
+    try:
+        first = client.post("/api/v1/demo/verify-token", headers={"X-Demo-Token": "first-secret"})
+        second = client.post("/api/v1/demo/verify-token", headers={"X-Demo-Token": "second-secret"})
+        third = client.post("/api/v1/demo/verify-token", headers={"X-Demo-Token": "third-secret"})
+        denied = client.post("/api/v1/demo/verify-token", headers={"X-Demo-Token": "unknown-secret"})
+    finally:
+        object.__setattr__(settings, "demo_access_token", original)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert third.status_code == 200
+    assert denied.status_code == 401
+
+
 def test_demo_task_routes_reject_missing_token_when_enabled() -> None:
     original = settings.demo_access_token
     object.__setattr__(settings, "demo_access_token", "demo-secret")
